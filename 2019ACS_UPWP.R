@@ -23,7 +23,7 @@ View(apis)
 #load ACS 2019 5YR SF Appendices
 #The Appendices list the tables, table description, table universe
 #downloaded from https://www2.census.gov/programs-surveys/acs/summary_file/2019/documentation/tech_docs/
-ACS_2019_SF_5YR_Appendices <- read_excel("ACS_2019_SF_5YR_Appendices.xls")
+ACS_2019_SF_5YR_Appendices <- read_excel("ACS_2019_SF_5YR_Appendices.xlsx")
 
 #load ACS 2019 5YR Table Shells
 #The Table Shells list and describe all the columns in each table.
@@ -135,6 +135,7 @@ UPWP_SUB_Towns$`Median Income` <- UPWP_JOIN$`Median Income`
 #create a MAPC table to collapse to the subdivision (aka sum these columns,take median of median income)
 MAPC <- data.frame(UPWP_2019df$NAME)
 MAPC$Total_Population <- DTabs$B02001_001E
+MAPC$FivePlus_Population <- (DTabs$B02001_001E - (DTabs$B01001_003E + DTabs$B01001_027E))
 MAPC$Minority_Pop <- (DTabs$B02001_001E - DTabs$B02001_002E)
 MAPC$LEP_Pop <-  (DTabs$C16001_005E + DTabs$C16001_008E + DTabs$C16001_011E + DTabs$C16001_014E + 
                     DTabs$C16001_017E + DTabs$C16001_020E + DTabs$C16001_023E +DTabs$C16001_026E + 
@@ -218,21 +219,21 @@ NSTF_Tab$SubRegion <- "NSTF"
 NSTF_Tab$UPWP_2019df.NAME <- as.character(NSTF_Tab$UPWP_2019df.NAME)
 
 #aggregate based on subregions
-ICC_Tab["ICC" ,] <- c("ICC",sum(ICC_Tab$Total_Population), sum(ICC_Tab$Minority_Pop), sum(ICC_Tab$LEP_Pop),
+ICC_Tab["ICC" ,] <- c("ICC",sum(ICC_Tab$Total_Population), sum(ICC_Tab$FivePlus_Population), sum(ICC_Tab$Minority_Pop), sum(ICC_Tab$LEP_Pop),
                       sum(ICC_Tab$Low_Income_Pop), median(ICC_Tab$Median_Income), "ICC")
-SSC_Tab["SSC" ,] <- c("SSC",sum(SSC_Tab$Total_Population), sum(SSC_Tab$Minority_Pop), sum(SSC_Tab$LEP_Pop),
+SSC_Tab["SSC" ,] <- c("SSC",sum(SSC_Tab$Total_Population), sum(SSC_Tab$FivePlus_Population), sum(SSC_Tab$Minority_Pop), sum(SSC_Tab$LEP_Pop),
                       sum(SSC_Tab$Low_Income_Pop), median(SSC_Tab$Median_Income), "SSC")
-TRIC_Tab["TRIC" ,] <- c("TRIC",sum(TRIC_Tab$Total_Population), sum(TRIC_Tab$Minority_Pop), sum(TRIC_Tab$LEP_Pop),
+TRIC_Tab["TRIC" ,] <- c("TRIC",sum(TRIC_Tab$Total_Population), sum(TRIC_Tab$FivePlus_Population), sum(TRIC_Tab$Minority_Pop), sum(TRIC_Tab$LEP_Pop),
                         sum(TRIC_Tab$Low_Income_Pop), median(TRIC_Tab$Median_Income), "TRIC")
-SWAP_Tab["SWAP" ,] <- c("SWAP",sum(SWAP_Tab$Total_Population), sum(SWAP_Tab$Minority_Pop), sum(SWAP_Tab$LEP_Pop),
+SWAP_Tab["SWAP" ,] <- c("SWAP",sum(SWAP_Tab$Total_Population), sum(SWAP_Tab$FivePlus_Population), sum(SWAP_Tab$Minority_Pop), sum(SWAP_Tab$LEP_Pop),
                         sum(SWAP_Tab$Low_Income_Pop), median(SWAP_Tab$Median_Income), "SWAP")
-MWRC_Tab["MWRC" ,] <- c("MWRC",sum(MWRC_Tab$Total_Population), sum(MWRC_Tab$Minority_Pop), sum(MWRC_Tab$LEP_Pop),
+MWRC_Tab["MWRC" ,] <- c("MWRC",sum(MWRC_Tab$Total_Population), sum(MWRC_Tab$FivePlus_Population), sum(MWRC_Tab$Minority_Pop), sum(MWRC_Tab$LEP_Pop),
                         sum(MWRC_Tab$Low_Income_Pop), median(MWRC_Tab$Median_Income), "MWRC")
-MAGIC_Tab["MAGIC" ,] <- c("MAGIC",sum(MAGIC_Tab$Total_Population), sum(MAGIC_Tab$Minority_Pop), sum(MAGIC_Tab$LEP_Pop),
+MAGIC_Tab["MAGIC" ,] <- c("MAGIC",sum(MAGIC_Tab$Total_Population), sum(MAGIC_Tab$FivePlus_Population), sum(MAGIC_Tab$Minority_Pop), sum(MAGIC_Tab$LEP_Pop),
                           sum(MAGIC_Tab$Low_Income_Pop), median(MAGIC_Tab$Median_Income), "MAGIC")
-NSPC_Tab["NSPC" ,] <- c("NSPC",sum(NSPC_Tab$Total_Population), sum(NSPC_Tab$Minority_Pop), sum(NSPC_Tab$LEP_Pop),
+NSPC_Tab["NSPC" ,] <- c("NSPC",sum(NSPC_Tab$Total_Population), sum(NSPC_Tab$FivePlus_Population), sum(NSPC_Tab$Minority_Pop), sum(NSPC_Tab$LEP_Pop),
                         sum(NSPC_Tab$Low_Income_Pop), median(NSPC_Tab$Median_Income), "NSPC")
-NSTF_Tab["NSTF" ,] <- c("NSTF",sum(NSTF_Tab$Total_Population), sum(NSTF_Tab$Minority_Pop), sum(NSTF_Tab$LEP_Pop),
+NSTF_Tab["NSTF" ,] <- c("NSTF",sum(NSTF_Tab$Total_Population), sum(NSTF_Tab$FivePlus_Population), sum(NSTF_Tab$Minority_Pop), sum(NSTF_Tab$LEP_Pop),
                         sum(NSTF_Tab$Low_Income_Pop), median(NSTF_Tab$Median_Income), "NSTF")
 
 #merge the subregions
@@ -241,7 +242,7 @@ SubRegions <- rbind(ICC_Tab["ICC" ,],SSC_Tab["SSC" ,],TRIC_Tab["TRIC" ,],SWAP_Ta
 
 #calculate percentage fields
 SubRegions$`Percent Minority` <- as.numeric(SubRegions$Minority_Pop)/as.numeric(SubRegions$Total_Population)
-SubRegions$`Percentage of Residents Age 5+ with Low English Proficiency` <- as.numeric(SubRegions$LEP_Pop)/as.numeric(SubRegions$Total_Population)
+SubRegions$`Percentage of Residents Age 5+ with Low English Proficiency` <- as.numeric(SubRegions$LEP_Pop)/as.numeric(SubRegions$FivePlus_Population)
 SubRegions$`Percent Low Income` <- as.numeric(SubRegions$Low_Income_Pop)/as.numeric(SubRegions$Total_Population)
 
 SubRegions$`Total Population` <- as.numeric(SubRegions$Total_Population)
@@ -253,7 +254,7 @@ SubR_FINAL <- SubRegions[8:13]
 
 #put it all together
 #ICC
-UPWP_SUB_Towns[38,9:13] <- SubR_FINAL["ICC",c(4,1,3,2,5)]
+UPWP_SUB_Towns[38,9:13] <- SubR_FINAL["ICC",c(5,2,4,3,6)]
 #SCC
 UPWP_SUB_Towns[86,9:13] <- SubR_FINAL["SSC",c(4,1,3,2,5)]
 #TRIC
