@@ -246,8 +246,39 @@ UPWP_OLD_TABLE <- read_excel("2020-04-28 Appendix D tables TBL SJ FOR LAYOUT.xls
 
 write_xlsx(FullTotals, "UPWP_Totals_2021.xlsx")
 
+#MEDIAN INCOME FOR SUBREGIONS AND GRAND TOTAL
+B19001 <- getCensus(name = "acs/acs5", vintage = 2019,
+                    key = key,vars = c("NAME","GEO_ID","B19001_001E","B19001_002E",
+                                       "B19001_003E","B19001_004E","B19001_005E","B19001_006E","B19001_007E",
+                                       "B19001_008E","B19001_009E","B19001_010E","B19001_011E","B19001_012E",
+                                       "B19001_013E","B19001_014E","B19001_015E","B19001_016E","B19001_017E"),
+                    region = "county subdivision:*", regionin = "state:25")
+
+nametemp <- str_split_fixed(B19001$NAME, " town",2)
+nametemp <- str_split_fixed(nametemp[,1], " city",2)
+nametemp <- str_split_fixed(nametemp[,1], " Town",2)
+nametemp <- nametemp[,1]
+B19001$NAME <- nametemp
+
+SubRegions2 <- rbind(ICC_Tab,SSC_Tab,TRIC_Tab,SWAP_Tab,MWRC_Tab,
+                    MAGIC_Tab,NSPC_Tab,NSTF_Tab)
+
+#SubRegions <- SubRegions %>% rename("NAME" = "replace")
+SubRegions <- SubRegions %>% rename("NAME" = "UPWP_2019df.NAME")
+
+#JOIN TO TOWNS BUT MARKED WITH SUBREGIONS
+MAPC_SubRegions <- merge(SubRegions2, B19001, by = c("NAME"))
 
 
+MAPC_19001 <- MAPC_SubRegions[c(1,7,8,13:29)]
+
+MEDINC_HH <- MAPC_19001 %>% group_by(SubRegion) %>% 
+  summarise(across(c(B19001_001E,B19001_002E,
+                     B19001_003E,B19001_004E,B19001_005E,B19001_006E,B19001_007E,
+                     B19001_008E,B19001_009E,B19001_010E,B19001_011E,B19001_012E,
+                     B19001_013E,B19001_014E,B19001_015E,B19001_016E,B19001_017E), sum))
+
+write_xlsx(MAPC_19001, "MAPC_B19001.xlsx")
 
 
 
