@@ -18,7 +18,12 @@ library(dplyr)
 library(tidycensus)
 library(tidyverse)
 library(stringr)
-library(hash)
+#library(hash)
+library(censusapi)
+library(readxl)
+library(readr)
+library(dplyr)
+library(writexl)
 
 setwd("M:/UPWP_Appendix_D")
 
@@ -124,7 +129,7 @@ ICC <- c("Somerville","Arlington","Everett","Newton","Belmont","Boston","Brookli
 
 subREG <- list(NSTF, NSPC, MAGIC, MWRC, SWAP, TRIC, SSC, ICC)
 subReg_Names <- c("NSTF", "NSPC", "MAGIC", "MWRC", "SWAP", "TRIC", "SSC", "ICC")
-subHash <- hash(subReg_Names, subREG)
+#subHash <- hash(subReg_Names, subREG)
 
 #make tables for subregions
 #get them in separate tables because overlap
@@ -242,9 +247,13 @@ FullTotals$Low_Income_Perc <- FullTotals$Low_Income_Pop/FullTotals$Total_Populat
 
 #load original table that we are updating
 #from Sandy yearly - make new first sheet that is just one header row with NAME for town name field
-UPWP_OLD_TABLE <- read_excel("2020-04-28 Appendix D tables TBL SJ FOR LAYOUT.xlsx")
+#UPWP_OLD_TABLE <- read_excel("2020-04-28 Appendix D tables TBL SJ FOR LAYOUT.xlsx")
 
-write_xlsx(FullTotals, "UPWP_Totals_2021.xlsx")
+#get subset of just useful columns at this point
+FullPerc <- FullTotals %>% select(NAME, Total_Population, Minority_Perc, LEP_Perc, Low_Income_Perc, Median_Income)
+
+#export output table
+write_xlsx(FullPerc, "UPWP_Totals_2021.xlsx")
 
 #MEDIAN INCOME FOR SUBREGIONS AND GRAND TOTAL
 B19001 <- getCensus(name = "acs/acs5", vintage = 2019,
@@ -264,7 +273,7 @@ SubRegions2 <- rbind(ICC_Tab,SSC_Tab,TRIC_Tab,SWAP_Tab,MWRC_Tab,
                     MAGIC_Tab,NSPC_Tab,NSTF_Tab)
 
 #SubRegions <- SubRegions %>% rename("NAME" = "replace")
-SubRegions <- SubRegions %>% rename("NAME" = "UPWP_2019df.NAME")
+#SubRegions <- SubRegions %>% rename("NAME" = "UPWP_2019df.NAME")
 
 #JOIN TO TOWNS BUT MARKED WITH SUBREGIONS
 MAPC_SubRegions <- merge(SubRegions2, B19001, by = c("NAME"))
@@ -272,15 +281,33 @@ MAPC_SubRegions <- merge(SubRegions2, B19001, by = c("NAME"))
 
 MAPC_19001 <- MAPC_SubRegions[c(1,7,8,13:29)]
 
-MEDINC_HH <- MAPC_19001 %>% group_by(SubRegion) %>% 
+#get sums of households in each range of income for each subregion
+MEDINC_HH <- MAPC_19001 %>% 
+  group_by(SubRegion) %>% 
   summarise(across(c(B19001_001E,B19001_002E,
                      B19001_003E,B19001_004E,B19001_005E,B19001_006E,B19001_007E,
                      B19001_008E,B19001_009E,B19001_010E,B19001_011E,B19001_012E,
                      B19001_013E,B19001_014E,B19001_015E,B19001_016E,B19001_017E), sum))
+#get total sum of households in each range of income for the whole region (can't use previous because doubles)
+GT_HH <- B19001 %>% 
+  filter(B19001$NAME %in% BRMPO) %>%
+  summarise(across(c(B19001_001E,B19001_002E,
+                     B19001_003E,B19001_004E,B19001_005E,B19001_006E,B19001_007E,
+                     B19001_008E,B19001_009E,B19001_010E,B19001_011E,B19001_012E,
+                     B19001_013E,B19001_014E,B19001_015E,B19001_016E,B19001_017E), sum))
+GT_HH$SubRegion <- "Grand Total"
 
-write_xlsx(MAPC_19001, "MAPC_B19001.xlsx")
+#merge the subregions and GT
+MEDINC_HH <- rbind(MEDINC_HH, GT_HH)
 
+#export for use in linear interpolation spreadsheet from paul.
+write_xlsx(MEDINC_HH, "MEDINC_HH.xlsx")
 
+#At this point, the only thing that needs updating is the Median Income for the Grand Total and all Subregions
+#Take the MEDINC_HH and put as a sheet in median_income_estimation_2019.xlsx and copy it into the 
+#columns H through W in the subregions_median_calc sheet. The rest will calculate for you. 
+#Then copy the interpolated Median Incomes into UPWP_Totals_2021.xlsx. 
+#Then all you have to do is make sure the format matches the previous years.
 
 
 
