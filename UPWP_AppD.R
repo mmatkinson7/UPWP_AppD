@@ -125,7 +125,7 @@ TRIC <- c("Norwood","Canton","Dedham","Dover","Foxborough","Medfield","Milton","
 SSC <- c("Rockland","Braintree","Cohasset","Hingham","Holbrook","Hull","Marshfield","Norwell","Scituate","Weymouth")
 
 ICC <- c("Somerville","Arlington","Everett","Newton","Belmont","Boston","Brookline","Cambridge","Chelsea","Lynn",
-         "Malden","Medford","Melrose","Milton","Quincy","Revere","Saugus","Waltham","Watertown","Winthrop")
+         "Malden","Medford","Melrose","Milton", "Needham","Quincy","Revere","Saugus","Waltham","Watertown","Winthrop")
 
 subREG <- list(NSTF, NSPC, MAGIC, MWRC, SWAP, TRIC, SSC, ICC)
 subReg_Names <- c("NSTF", "NSPC", "MAGIC", "MWRC", "SWAP", "TRIC", "SSC", "ICC")
@@ -245,10 +245,6 @@ FullTotals$Minority_Perc <- FullTotals$Minority_Pop/FullTotals$Total_Population
 FullTotals$LEP_Perc <- FullTotals$LEP_Pop/FullTotals$FivePlus_Population
 FullTotals$Low_Income_Perc <- FullTotals$Low_Income_Pop/FullTotals$Total_Population
 
-#load original table that we are updating
-#from Sandy yearly - make new first sheet that is just one header row with NAME for town name field
-#UPWP_OLD_TABLE <- read_excel("2020-04-28 Appendix D tables TBL SJ FOR LAYOUT.xlsx")
-
 #get subset of just useful columns at this point
 FullPerc <- FullTotals %>% select(NAME, Total_Population, Minority_Perc, LEP_Perc, Low_Income_Perc, Median_Income)
 
@@ -307,9 +303,29 @@ write_xlsx(MEDINC_HH, "MEDINC_HH.xlsx")
 #Take the MEDINC_HH and put as a sheet in median_income_estimation_2019.xlsx and copy it into the 
 #columns H through W in the subregions_median_calc sheet. The rest will calculate for you. 
 #Then copy the interpolated Median Incomes into UPWP_Totals_2021.xlsx. 
+#Resave as UPWP_Totals_2021_wMI.xlsx, and update all subregions to be like: ICC Subtotals 
 #Then all you have to do is make sure the format matches the previous years.
 
 
+#load original table that we are updating
+#from Sandy yearly - make new first sheet that is just one header row with NAME for town name field
+UPWP_OLD_TABLE <- read_excel("2020-04-28 Appendix D tables TBL SJ FOR LAYOUT.xlsx")
+#read in excel file representing FullPerc but with median incomes updated outside R (in excel, see above)
+FINAL <- read_excel("UPWP_Totals_2021_wMI.xlsx")
 
+#this is sketch, make sure Manchester-by-the-Sea is really 34 before running.
+FINAL$NAME[34] <- "Manchester"
+#join to the old table so that I can copy the the format (this keeps order)
+UPWP_JOIN <- left_join(UPWP_OLD_TABLE,FINAL, by= "NAME")
+#update columns
+UPWP_JOIN$`Total Population` <- UPWP_JOIN$Total_Population
+UPWP_JOIN$`Percent Minority` <- UPWP_JOIN$Minority_Perc
+UPWP_JOIN$`Percentage of  Residents in Poverty` <- UPWP_JOIN$Low_Income_Perc
+UPWP_JOIN$`Percentage of Residents Age 5+ with Low English Proficiency` <- UPWP_JOIN$LEP_Perc
+UPWP_JOIN$`Household Median Income` <- UPWP_JOIN$Median_Income
 
+#drop unnecessary columns
+dropCols <- c('Total_Population', 'Minority_Perc', 'Low_Income_Perc', 'LEP_Perc', 'Median_Income')
+UPWP <- UPWP_JOIN %>% select(-one_of(dropCols))
 
+write_xlsx(UPWP, "UPWP_Updated21.xlsx")
