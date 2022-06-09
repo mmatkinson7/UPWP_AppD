@@ -55,19 +55,28 @@ key = "e4bec76221ba04c7df76c7c580659bf1f54ed2c1"
 # C17002 = Ratio Of Income To Poverty Level In The Past 12 Months
 #       C17002_002E,C17002_003E,C17002_004E,C17002_005E,C17002_006E,C17002_007E = (sum) # individuals below 200% of poverty level
 
-DTabs <- getCensus(name = "acs/acs5", vintage = 2019,key = key ,
-                   vars = c("NAME","GEO_ID","B02001_001E","B02001_002E","B11001_001E","B19013_001E", 
+DTabs <- getCensus(name = "acs/acs5", vintage = 2018,key = key ,
+                   vars = c("NAME","GEO_ID","B03002_001E","B03002_003E","B11001_001E","B19013_001E", 
                             "B01001_003E", "B01001_027E", 
                             "C17002_002E", "C17002_003E", "C17002_004E", "C17002_005E", "C17002_006E", "C17002_007E",
                             "C16001_005E", "C16001_008E", "C16001_011E", "C16001_014E", "C16001_017E", "C16001_020E",
                             "C16001_023E", "C16001_026E", "C16001_029E", "C16001_032E", "C16001_035E", "C16001_038E"),
                    region = "county subdivision:*", regionin = "state:25")
 
+DTabs2 <- getCensus(name = "dec/sf1", vintage = 2010,key = key ,
+                   vars = c("NAME","GEO_ID","P005001","P005003"),
+                   region = "county subdivision:*", regionin = "state:25")
+DTabs2[188,'GEO_ID'] <- '0600000US2501724960' #Framingham became a city.
+
+#merge minority data from decennial census to ACS data
+DTabs <- left_join(DTabs, DTabs2[c('GEO_ID',"P005001","P005003")], by='GEO_ID')
 
 Totals <- data.frame(DTabs$NAME)
-Totals$Total_Population <- DTabs$B02001_001E
-Totals$FivePlus_Population <- (DTabs$B02001_001E - (DTabs$B01001_003E + DTabs$B01001_027E))
-Totals$Minority_Pop <- (DTabs$B02001_001E - DTabs$B02001_002E)
+Totals$Total_Population <- DTabs$P005001
+Totals$Total_PopulationACS <- DTabs$B03002_001E
+Totals$FivePlus_Population <- (DTabs$B03002_001E - (DTabs$B01001_003E + DTabs$B01001_027E))
+Totals$Minority_Pop <- (DTabs$B03002_001E - DTabs$B03002_003E)
+Totals$Minority_Pop <- DTabs$P005001-DTabs$P005003
 Totals$LEP_Pop <-  (DTabs$C16001_005E + DTabs$C16001_008E + DTabs$C16001_011E + DTabs$C16001_014E + 
                       DTabs$C16001_017E + DTabs$C16001_020E + DTabs$C16001_023E +DTabs$C16001_026E + 
                       DTabs$C16001_029E + DTabs$C16001_032E + DTabs$C16001_035E + DTabs$C16001_038E)
@@ -94,7 +103,7 @@ BRMPO <- c("Beverly","Boston","Braintree","Cambridge","Chelsea","Everett","Frami
            "Stoneham","Stow","Sudbury","Swampscott","Topsfield","Wakefield","Walpole","Wayland","Wellesley","Wenham",
            "Weston","Westwood","Wilmington","Winchester","Winthrop","Wrentham")
 MPO_Totals <- Totals %>% filter(Totals$NAME %in% BRMPO)
-MPO_Totals <- MPO_Totals[2:8] #get rid of long name
+MPO_Totals <- MPO_Totals[2:9] #get rid of long name
 
 #create grand total row (NOTE THIS DOES NOT INCLUDE MEDIAN INCOME)
 MPO_Totals <- MPO_Totals %>% add_row(Total_Population = sum(MPO_Totals$Total_Population),
@@ -230,7 +239,7 @@ SubRegions <- rbind((ICC_Tab %>% filter(NAME == "ICC")), (SSC_Tab %>% filter(NAM
                     (NSPC_Tab %>% filter(NAME == "NSPC")),(NSTF_Tab %>% filter(NAME == "NSTF")))
 
 #merge the grand total and town data with subregions
-FullTotals <- rbind(MPO_Totals, SubRegions[1:7])
+FullTotals <- rbind(MPO_Totals, SubRegions[1:8])
 
 # Columns:
 # Total Population = B02001_001E
@@ -243,16 +252,16 @@ FullTotals <- rbind(MPO_Totals, SubRegions[1:7])
 
 FullTotals$Minority_Perc <- FullTotals$Minority_Pop/FullTotals$Total_Population
 FullTotals$LEP_Perc <- FullTotals$LEP_Pop/FullTotals$FivePlus_Population
-FullTotals$Low_Income_Perc <- FullTotals$Low_Income_Pop/FullTotals$Total_Population
+FullTotals$Low_Income_Perc <- FullTotals$Low_Income_Pop/FullTotals$Total_PopulationACS
 
 #get subset of just useful columns at this point
 FullPerc <- FullTotals %>% select(NAME, Total_Population, Minority_Perc, LEP_Perc, Low_Income_Perc, Median_Income)
 
 #export output table
-write_xlsx(FullPerc, "UPWP_Totals_2021.xlsx")
+write_xlsx(FullPerc, "UPWP_Totals_2021_P5.xlsx")
 
 #MEDIAN INCOME FOR SUBREGIONS AND GRAND TOTAL
-B19001 <- getCensus(name = "acs/acs5", vintage = 2019,
+B19001 <- getCensus(name = "acs/acs5", vintage = 2018,
                     key = key,vars = c("NAME","GEO_ID","B19001_001E","B19001_002E",
                                        "B19001_003E","B19001_004E","B19001_005E","B19001_006E","B19001_007E",
                                        "B19001_008E","B19001_009E","B19001_010E","B19001_011E","B19001_012E",
@@ -275,7 +284,7 @@ SubRegions2 <- rbind(ICC_Tab,SSC_Tab,TRIC_Tab,SWAP_Tab,MWRC_Tab,
 MAPC_SubRegions <- merge(SubRegions2, B19001, by = c("NAME"))
 
 
-MAPC_19001 <- MAPC_SubRegions[c(1,7,8,13:29)]
+MAPC_19001 <- MAPC_SubRegions[c(1,8,9,14:30)]
 
 #get sums of households in each range of income for each subregion
 MEDINC_HH <- MAPC_19001 %>% 
@@ -328,4 +337,4 @@ UPWP_JOIN$`Household Median Income` <- UPWP_JOIN$Median_Income
 dropCols <- c('Total_Population', 'Minority_Perc', 'Low_Income_Perc', 'LEP_Perc', 'Median_Income')
 UPWP <- UPWP_JOIN %>% select(-one_of(dropCols))
 
-write_xlsx(UPWP, "UPWP_Updated21.xlsx")
+write_xlsx(UPWP, "UPWP_Updated20_Sept13P5.xlsx")
